@@ -1,21 +1,22 @@
 {
   "manifest_version": 3,
-  "name": "Demo Chrome Extension",
+  "name": "dbt Semantic Layer Explorer",
   "version": "1.0",
-  "description": "A minimal Chrome extension for demo purposes.",
-  "permissions": ["activeTab", "scripting"],
-  "action": {
-    "default_popup": "popup.html",
-    "default_icon": {
-      "16": "icon16.png",
-      "48": "icon48.png",
-      "128": "icon128.png"
-    }
-  },
-  "content_scripts": [
+  "permissions": ["storage"],
+  "web_accessible_resources": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["content.js"]
+      "resources": ["chart.js"],
+      "matches": ["<all_urls>"]
     }
-  ]
+  ],
+  "host_permissions": ["http://localhost:7700/*", "https://semantic-layer.cloud.getdbt.com/api/graphql","https://cdn.jsdelivr.net/npm/chart.js","acme-demo.html"],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "icons": {
+    "16": "dbt-logo.png",
+    "32": "dbt-logo.png",
+    "48": "dbt-logo.png",
+    "128": "dbt-logo.png"
+  }
 } 
