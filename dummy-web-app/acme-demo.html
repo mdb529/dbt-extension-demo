@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" href="acme-demo.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; background: #f7f9fa; min-width: 350px; }
+      .header { display: flex; align-items: center; gap: 10px; padding: 12px 12px 0 12px; }
+      .header img { height: 32px; }
+      .header h1 { font-size: 1.2em; margin: 0; }
+      .summary-cards { display: flex; gap: 10px; margin: 12px 12px 0 12px; }
+      .card { background: #fff; border-radius: 8px; padding: 12px 16px; flex: 1; box-shadow: 0 1px 4px #0001; }
+      .card-title { font-size: 0.9em; color: #888; }
+      .card-value { font-size: 1.3em; font-weight: bold; }
+      .search-bar { margin: 12px 12px 0 12px; display: flex; gap: 8px; }
+      .search-bar input { flex: 1; padding: 8px; border-radius: 4px; border: 1px solid #ccc; }
+      .customer-table { margin: 12px; background: #fff; border-radius: 8px; box-shadow: 0 1px 4px #0001; }
+      table { width: 100%; border-collapse: collapse; }
+      th, td { padding: 8px 6px; text-align: left; }
+      th { background: #f1f6fb; font-size: 0.95em; }
+      tr:nth-child(even) { background: #f9fbfc; }
+      .health-good { color: #22c55e; font-weight: bold; }
+      .health-medium { color: #eab308; font-weight: bold; }
+      .health-bad { color: #ef4444; font-weight: bold; }
+      .risk-yes { color: #ef4444; font-weight: bold; }
+      .risk-no { color: #22c55e; font-weight: bold; }
+    </style>
+    <script>
+      // Mock data
+      const customers = [
+        { name: 'Globex Corp', csm: 'Alice Smith', health: 92, lastContact: '2024-06-01', tickets: 0, risk: false, perf: [70, 75, 80, 85, 90, 92] },
+        { name: 'Initech', csm: 'Bob Lee', health: 68, lastContact: '2024-05-28', tickets: 2, risk: true, perf: [80, 78, 75, 72, 70, 68] },
+        { name: 'Umbrella Inc', csm: 'Alice Smith', health: 80, lastContact: '2024-05-30', tickets: 1, risk: false, perf: [60, 65, 70, 75, 78, 80] },
+        { name: 'Hooli', csm: 'Carol Jones', health: 55, lastContact: '2024-05-20', tickets: 3, risk: true, perf: [70, 68, 65, 60, 58, 55] },
+        { name: 'Stark Industries', csm: 'Bob Lee', health: 99, lastContact: '2024-06-02', tickets: 0, risk: false, perf: [90, 92, 94, 96, 98, 99] },
+        { name: 'Wayne Enterprises', csm: 'Carol Jones', health: 74, lastContact: '2024-05-29', tickets: 1, risk: false, perf: [60, 65, 70, 72, 74, 74] }
+      ];
+      function getHealthClass(score) {
+        if (score >= 85) return 'health-good';
+        if (score >= 70) return 'health-medium';
+        return 'health-bad';
+      }
+      function renderTable(filter = '') {
+        const tbody = document.getElementById('customer-tbody');
+        tbody.innerHTML = '';
+        customers
+          .filter(c =>
+            c.name.toLowerCase().includes(filter) ||
+            c.csm.toLowerCase().includes(filter)
+          )
+          .forEach(c => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>${c.name}</td>
+              <td>${c.csm}</td>
+              <td class="${getHealthClass(c.health)}">${c.health}</td>
+              <td>${c.lastContact}</td>
+              <td>${c.tickets}</td>
+              <td class="${c.risk ? 'risk-yes' : 'risk-no'}">${c.risk ? 'Yes' : 'No'}</td>
+            `;
+            tbody.appendChild(tr);
+          });
+      }
+      function renderSummary() {
+        const total = customers.length;
+        const atRisk = customers.filter(c => c.risk).length;
+        const avgHealth = Math.round(customers.reduce((a, c) => a + c.health, 0) / total);
+        const csmScores = {};
+        customers.forEach(c => {
+          if (!csmScores[c.csm]) csmScores[c.csm] = [];
+          csmScores[c.csm].push(c.health);
+        });
+        let topCSM = '';
+        let topAvg = 0;
+        for (const csm in csmScores) {
+          const avg = csmScores[csm].reduce((a, b) => a + b, 0) / csmScores[csm].length;
+          if (avg > topAvg) { topAvg = avg; topCSM = csm; }
+        }
+        document.getElementById('summary-total').textContent = total;
+        document.getElementById('summary-risk').textContent = atRisk;
+        document.getElementById('summary-avg').textContent = avgHealth;
+        document.getElementById('summary-top').textContent = topCSM;
+      }
+      function renderGraphs() {
+        const graphContainer = document.getElementById('customer-graphs');
+        graphContainer.innerHTML = '';
+        customers.forEach((c, idx) => {
+          const canvas = document.createElement('canvas');
+          canvas.id = `chart-${idx}`;
+          canvas.className = 'customer-chart';
+          const wrapper = document.createElement('div');
+          wrapper.className = 'chart-wrapper';
+          const label = document.createElement('div');
+          label.className = 'chart-label';
+          label.innerHTML = `<b>${c.name}</b> <span style="color:#888;font-size:0.95em;">(${c.csm})</span>`;
+          wrapper.appendChild(label);
+          wrapper.appendChild(canvas);
+          graphContainer.appendChild(wrapper);
+          // Determine color: green for up, red for down
+          const up = c.perf[c.perf.length-1] >= c.perf[0];
+          const color = up ? '#22c55e' : '#ef4444';
+          new Chart(canvas, {
+            type: 'line',
+            data: {
+              labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+              datasets: [{
+                data: c.perf,
+                borderColor: color,
+                backgroundColor: color + '22',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 3,
+                pointBackgroundColor: color,
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2
+              }]
+            },
+            options: {
+              plugins: { legend: { display: false } },
+              scales: {
+                x: { display: false },
+                y: { display: false, min: 40, max: 105 }
+              },
+              elements: { line: { borderWidth: 3 } },
+              responsive: true,
+              maintainAspectRatio: false,
+              animation: false
+            }
+          });
+        });
+      }
+      document.addEventListener('DOMContentLoaded', () => {
+        renderTable('');
+        renderSummary();
+        renderGraphs();
+        document.getElementById('customer-search').oninput = e => {
+          renderTable(e.target.value.trim().toLowerCase());
+        };
+      });
+    </script>
+  </head>
+  <body>
+    <div class="header">
+      <img src="acme-logo.jpeg" alt="Acme Co logo" />
+      <h1>Customer Success Dashboard</h1>
+    </div>
+    <div class="container">
+      <div class="summary">
+        <div class="card">
+          <div class="card-title">Total Customers</div>
+          <div class="card-value" id="summary-total"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">At Risk</div>
+          <div class="card-value" id="summary-risk"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Avg. Health Score</div>
+          <div class="card-value" id="summary-avg"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Top CSM</div>
+          <div class="card-value" id="summary-top"></div>
+        </div>
+      </div>
+      <div class="chart-section">
+        <h2 style="margin:32px 0 12px 0;font-size:1.2em;color:#1a73e8;">Customer Performance Over Time</h2>
+        <div id="customer-graphs" class="customer-graphs"></div>
+      </div>
+      <div class="search-bar">
+        <input id="customer-search" type="text" placeholder="Search customers or CSM..." />
+      </div>
+      <div class="customer-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Customer</th>
+              <th>CSM</th>
+              <th>Health</th>
+              <th>Last Contact</th>
+              <th>Open Tickets</th>
+              <th>Churn Risk</th>
+            </tr>
+          </thead>
+          <tbody id="customer-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </body>
+</html> 
